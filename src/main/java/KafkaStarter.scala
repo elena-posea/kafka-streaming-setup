@@ -33,7 +33,7 @@ object KafkaStarter extends LazyLogging {
     // noop
     logger.info("Doing something")
     rdd.foreach {
-      case (_: String, codedMsg: String) => {
+      case (_, codedMsg: String) => {
         val msg = codedMsg
         logger.info(msg)
       }
@@ -44,7 +44,7 @@ object KafkaStarter extends LazyLogging {
   private def makeDStream(ssc: StreamingContext): DStream[(String, String)] = {
     val topic = "elena"
     val brokers = "localhost:9092"
-    val beginOffset = "largest"
+    val beginOffset = "smallest"
     val consumer = "myconsumergroup"
     val zkConnect = "localhost:2181"
 
