@@ -8,13 +8,13 @@ import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 object KafkaStarter extends LazyLogging {
   def main(args: Array[String]): Unit = {
     val session = SparkSession.builder.master("local[2]").appName("My app").getOrCreate
-    val ssc = new StreamingContext(session.sparkContext, Milliseconds(30000)) // 30s
+    val ssc = new StreamingContext(session.sparkContext, Milliseconds(10000)) // 10s
     val dstream = makeDStream(ssc)
     dstream.foreachRDD {
-      rdd => {
-        if (!rdd.isEmpty()) {
-          val offsets = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
-          doSomething(rdd)
+      consumerRecord => {
+        if (!consumerRecord.isEmpty()) {
+          // val offsets = consumerRecord.asInstanceOf[HasOffsetRanges].offsetRanges
+          doSomething(consumerRecord)
           // write offsets if you are persisting them anywhere
           logger.info("NOT persisting offsets")
         }
@@ -32,13 +32,21 @@ object KafkaStarter extends LazyLogging {
   def doSomething(rdd: RDD[(String, String)]) = {
     // noop
     logger.info("Doing something")
-    rdd.foreach {
-      case (_, codedMsg: String) => {
-        val msg = codedMsg
-        logger.info(msg)
+//    rdd.foreach {
+//      case (key, codedMsg: String) => {
+//        val msg = codedMsg
+//        logger.info(msg)
+//      }
+//    }
+
+    rdd.foreachPartition(
+      (it: Iterator[(String, String)]) => {
+        while(it.hasNext) {
+          val record: (String, String) = it.next()
+          System.out.printf("key = %s, value = %s\n", record._1, new String(record._2));
+        }
       }
-    }
-    // vs rdd.foreachPartition()
+    )
   }
 
   private def makeDStream(ssc: StreamingContext): DStream[(String, String)] = {
